@@ -273,8 +273,10 @@ class ShiftGeneratorTest {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun createMockDatabase(): com.shiftcalendar.data.database.AppDatabase {
-        throw UnsupportedOperationException("Mock database not needed for this test")
+        // Mock database is never accessed; generate() is overridden below
+        return null as com.shiftcalendar.data.database.AppDatabase
     }
 }
 

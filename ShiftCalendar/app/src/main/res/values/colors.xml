@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 简约配色方案: Zen-inspired Minimalist -->
+    <color name="background_primary">#F8F9FA</color>
+    <color name="background_secondary">#F0F1F3</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_tertiary">#9CA3AF</color>
+    <color name="divider">#E5E7EB</color>
+    <color name="accent">#4A6FA5</color>
+    <color name="accent_light">#E8EEF5</color>
+    <color name="today_highlight">#4A6FA5</color>
+
+    <!-- 班次颜色标记 (低饱和度) -->
+    <color name="shift_morning">#7BA587</color>
+    <color name="shift_afternoon">#E8A87C</color>
+    <color name="shift_night">#6C7BA6</color>
+    <color name="shift_rest">#A0A0A0</color>
+    <color name="shift_default">#4A6FA5</color>
+</resources>

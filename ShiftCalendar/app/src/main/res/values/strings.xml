@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">倒班日历</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_calendar">日历</string>
+    <string name="nav_shifts">班次</string>
+    <string name="nav_rules">规律</string>
+
+    <!-- Shift Type -->
+    <string name="add_shift">添加班次</string>
+    <string name="edit_shift">编辑班次</string>
+    <string name="shift_name">班次名称</string>
+    <string name="shift_name_hint">例如：白班、夜班、休息…</string>
+    <string name="shift_color">颜色标记</string>
+    <string name="shift_start_time">开始时间</string>
+    <string name="shift_end_time">结束时间</string>
+    <string name="delete_shift_confirm">确定删除此班次？已关联的日历数据将标记为"未知类型"。</string>
+    <string name="delete">删除</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+
+    <!-- Shift Rule -->
+    <string name="add_rule">添加规律</string>
+    <string name="edit_rule">编辑规律</string>
+    <string name="rule_name">规律名称</string>
+    <string name="rule_name_hint">例如：四班三运转…</string>
+    <string name="start_date">起始日期</string>
+    <string name="cycle_days">周期天数</string>
+    <string name="shift_sequence">班次序列</string>
+    <string name="preview_label">未来 7 天预览</string>
+    <string name="generate_shifts">生成班次</string>
+    <string name="regenerate_confirm">修改规律将重新生成全部班次，是否继续？</string>
+    <string name="generating">正在生成班次…</string>
+    <string name="generation_complete">班次生成完成</string>
+
+    <!-- Calendar -->
+    <string name="month_view">月</string>
+    <string name="week_view">周</string>
+    <string name="today">今天</string>
+    <string name="day_detail">班次详情</string>
+    <string name="unknown_shift">未知班次</string>
+    <string name="no_shift">无班次</string>
+    <string name="empty_shift_hint">暂无班次，请先添加班次类型</string>
+    <string name="empty_rule_hint">暂无规律，请先添加倒班规律</string>
+    <string name="empty_calendar_hint">暂无日历数据，请先生成班次</string>
+
+    <!-- Common -->
+    <string name="confirm">确定</string>
+    <string name="loading">加载中…</string>
+</resources>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 简约主题: 无大面积色块，线条分隔为主 -->
+    <style name="Theme.ShiftCalendar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accent_light</item>
+        <item name="colorOnPrimary">@color/surface</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="android:colorBackground">@color/background_primary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:windowBackground">@color/background_primary</item>
+        <item name="android:navigationBarColor">@color/background_primary</item>
+        <item name="android:statusBarColor">@color/background_primary</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:divider">@color/divider</item>
+        <item name="android:listDivider">@color/divider</item>
+    </style>
+
+    <style name="Theme.ShiftCalendar.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ShiftCalendar.BottomSheet</item>
+    </style>
+
+    <style name="Widget.ShiftCalendar.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.ShiftCalendar.BottomSheet</item>
+    </style>
+
+    <style name="ShapeAppearance.ShiftCalendar.BottomSheet" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+
+    <!-- 简约分隔线 -->
+    <style name="Widget.ShiftCalendar.Divider" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/divider</item>
+    </style>
+</resources>

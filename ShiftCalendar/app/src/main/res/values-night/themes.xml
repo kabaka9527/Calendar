@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ShiftCalendar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accent_light</item>
+        <item name="colorOnPrimary">#1A1A2E</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="colorOnSurface">#E8E8E8</item>
+        <item name="android:textColorPrimary">#E8E8E8</item>
+        <item name="android:textColorSecondary">#A0A0A0</item>
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:navigationBarColor">#121212</item>
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.ShiftCalendar.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ShiftCalendar.BottomSheet</item>
+    </style>
+
+    <style name="Widget.ShiftCalendar.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">#1E1E1E</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.ShiftCalendar.BottomSheet</item>
+    </style>
+</resources>

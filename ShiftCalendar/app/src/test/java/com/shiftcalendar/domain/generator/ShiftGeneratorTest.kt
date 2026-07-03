@@ -90,19 +90,22 @@ class ShiftGeneratorTest {
     }
 
     @Test
-    fun `generate - sequence shorter than cycle uses fallback`() {
+    fun `generate - repeated shift type in sequence`() {
+        // 同一班次可连续多天（如夜班连续2天再换班）
         val rule = createRule(
-            name = "短序列",
+            name = "连续班次",
             startDate = "2024-01-01",
-            cycleDays = 5,
-            sequence = "0,1,2"
+            cycleDays = 4,
+            sequence = "0,0,1,2"
         )
 
-        generateDays(rule, 5)
+        generateDays(rule, 4)
 
-        assertEquals(5, generatedDays.size)
-        assertEquals(0L, generatedDays[3].shiftTypeId)
-        assertEquals(1L, generatedDays[4].shiftTypeId)
+        assertEquals(4, generatedDays.size)
+        assertEquals(0L, generatedDays[0].shiftTypeId)
+        assertEquals(0L, generatedDays[1].shiftTypeId)
+        assertEquals(1L, generatedDays[2].shiftTypeId)
+        assertEquals(2L, generatedDays[3].shiftTypeId)
     }
 
     @Test
@@ -240,8 +243,9 @@ class ShiftGeneratorTest {
 
         for (dayOffset in 0 until days) {
             val date = calendar.timeInMillis
-            val cycleIndex = dayOffset % rule.cycleDays
-            val shiftTypeId = if (cycleIndex < sequence.size) sequence[cycleIndex] else sequence[0]
+            // 倒班轮转：序列长度即周期，一个班次结束自动接下一个
+            val cycleIndex = dayOffset % sequence.size
+            val shiftTypeId = sequence[cycleIndex]
 
             generatedDays.removeAll { it.date == date }
             generatedDays.add(

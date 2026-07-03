@@ -10,10 +10,13 @@ import java.util.Calendar
  *
  * 根据规律配置自动计算并批量生成班次安排。
  *
- * 算法：
- * 1. 解析 shiftSequence 字符串（逗号分隔的 shiftTypeId 列表）
- * 2. 从 startDate 开始，按 cycleDays 周期循环 shiftSequence
- * 3. 生成指定天数范围内的 ShiftDay 记录
+ * 倒班机制：
+ * 1. 解析 shiftSequence（逗号分隔的 shiftTypeId 列表），序列长度即为一个完整周期
+ * 2. 从 startDate 开始，按序列顺序逐日轮转
+ * 3. 一个班次"结束"后自动接续序列中的下一个班次，序列末尾结束后回到开头循环
+ *
+ * 例如序列 [白班, 中班, 夜班, 休息]：
+ *   第1天 白班 → 第2天 中班 → 第3天 夜班 → 第4天 休息 → 第5天 白班 → ...
  *
  * 多规律冲突解决：后生成的覆盖先生成的（OnConflictStrategy.REPLACE）
  */
@@ -50,14 +53,9 @@ open class ShiftGenerator(private val database: AppDatabase) {
 
         for (dayOffset in 0 until days) {
             val date = calendar.timeInMillis
-            // 计算当前日期在周期中的位置
-            val cycleIndex = dayOffset % rule.cycleDays
-            // 获取对应的班次类型 ID
-            val shiftTypeId = if (cycleIndex < sequence.size) {
-                sequence[cycleIndex]
-            } else {
-                sequence[0] // fallback
-            }
+            // 倒班轮转：序列长度即周期，一个班次结束自动接下一个
+            val cycleIndex = dayOffset % sequence.size
+            val shiftTypeId = sequence[cycleIndex]
 
             shiftDays.add(
                 ShiftDay(

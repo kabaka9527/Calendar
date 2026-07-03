@@ -30,7 +30,7 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
     private var editingRule: ShiftRule? = null
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
-    // 选中的班次类型序列（按点击顺序）
+    // 选中的班次类型序列（按点击顺序），序列长度即倒班周期
     private val selectedSequence = mutableListOf<Long>()
     private var shiftTypes: List<ShiftType> = emptyList()
 
@@ -59,7 +59,6 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
 
         editingRule?.let { rule ->
             binding.etName.setText(rule.name)
-            binding.etCycleDays.setText(rule.cycleDays.toString())
             binding.tvStartDate.text = dateFormat.format(java.util.Date(rule.startDate))
             binding.tvTitle.text = getString(R.string.edit_rule)
             // 解析已有序列
@@ -84,13 +83,6 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val cycleDaysStr = binding.etCycleDays.text.toString().trim()
-            val cycleDays = cycleDaysStr.toIntOrNull()
-            if (cycleDays == null || cycleDays <= 0) {
-                binding.etCycleDays.error = "请输入有效周期天数"
-                return@setOnClickListener
-            }
-
             if (selectedSequence.isEmpty()) {
                 binding.tvSequencePreview.text = "请选择至少一个班次"
                 return@setOnClickListener
@@ -102,11 +94,12 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
                 System.currentTimeMillis()
             }
 
+            // 倒班周期 = 班次序列长度，一个班次结束自动接续下一个
             val rule = ShiftRule(
                 id = editingRule?.id ?: 0,
                 name = name,
                 startDate = startDate,
-                cycleDays = cycleDays,
+                cycleDays = selectedSequence.size,
                 shiftSequence = selectedSequence.joinToString(","),
                 createdAt = editingRule?.createdAt ?: System.currentTimeMillis()
             )
@@ -191,6 +184,7 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
     private fun updateSequencePreview() {
         if (selectedSequence.isEmpty()) {
             binding.tvSequencePreview.text = ""
+            binding.tvCycleInfo.text = ""
             return
         }
 
@@ -200,6 +194,9 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
             "${index + 1}. $name"
         }
         binding.tvSequencePreview.text = names.joinToString("  →  ")
+
+        // 显示倒班周期信息
+        binding.tvCycleInfo.text = getString(R.string.cycle_info_format, selectedSequence.size)
     }
 
     private fun parseSequence(sequence: String): List<Long> {

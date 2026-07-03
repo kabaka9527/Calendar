@@ -97,7 +97,7 @@ jobs:
             --title "ShiftCalendar 预发行版 (${SHORT_SHA})" \
             --notes "自动构建于 ${BUILD_TIME}，commit [\`${SHORT_SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})。" \
             --prerelease \
-            --make-latest false \
+            --latest=false \
             --target trae/agent-EUzjd0
 
           echo "::notice::预发行版已发布: ${{ github.server_url }}/${{ github.repository }}/releases/tag/prerelease"

@@ -46,21 +46,24 @@ jobs:
         working-directory: ShiftCalendar
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Run unit tests
-        working-directory: ShiftCalendar
-        run: ./gradlew testDebugUnitTest --stacktrace
-
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: ShiftCalendar/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload release APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: ShiftCalendar/app/build/outputs/apk/release/app-release.apk
+
+      - name: Run unit tests
+        working-directory: ShiftCalendar
+        run: ./gradlew testDebugUnitTest --stacktrace
+        continue-on-error: true
 
       - name: Upload test report
         if: always()

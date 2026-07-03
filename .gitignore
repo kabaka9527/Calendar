@@ -26,6 +26,8 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+# 例外：仓库内固定的开发签名 keystore（预发行版用，非正式发布密钥）
+!ShiftCalendar/app/release-keystore.jks
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json

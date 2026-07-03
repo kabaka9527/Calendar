@@ -125,13 +125,19 @@
             app:chipSpacingVertical="4dp" />
 
         <TextView
-            android:id="@+id/tvSequencePreview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="4dp"
+            android:text="已选序列（点击班次添加，可调整顺序）"
+            android:textColor="@color/text_tertiary"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/sequenceListContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/accent"
-            android:textSize="13sp"
-            android:fontFamily="sans-serif-medium" />
+            android:orientation="vertical" />
 
         <TextView
             android:id="@+id/tvCycleInfo"

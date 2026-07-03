@@ -1,10 +1,12 @@
 package com.shiftcalendar.ui.shiftrule
 
 import android.app.Dialog
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Collections
 import java.util.Locale
 
 class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
@@ -84,7 +87,7 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
             }
 
             if (selectedSequence.isEmpty()) {
-                binding.tvSequencePreview.text = "请选择至少一个班次"
+                binding.tvCycleInfo.text = "请选择至少一个班次"
                 return@setOnClickListener
             }
 
@@ -153,7 +156,7 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    binding.tvSequencePreview.text = getString(R.string.shift_sequence_empty)
+                    binding.tvCycleInfo.text = getString(R.string.shift_sequence_empty)
                 }
             }
         }
@@ -163,7 +166,7 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
         binding.chipGroupSequence.removeAllViews()
 
         if (shiftTypes.isEmpty()) {
-            binding.tvSequencePreview.text = getString(R.string.shift_sequence_empty)
+            binding.tvCycleInfo.text = getString(R.string.shift_sequence_empty)
             return
         }
 
@@ -182,21 +185,132 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
     }
 
     private fun updateSequencePreview() {
+        binding.sequenceListContainer.removeAllViews()
+
         if (selectedSequence.isEmpty()) {
-            binding.tvSequencePreview.text = ""
             binding.tvCycleInfo.text = ""
             return
         }
 
         val typeMap = shiftTypes.associateBy { it.id }
-        val names = selectedSequence.mapIndexed { index, id ->
-            val name = typeMap[id]?.name ?: "未知"
-            "${index + 1}. $name"
+
+        selectedSequence.forEachIndexed { index, id ->
+            val item = createSequenceItem(index, id, typeMap)
+            binding.sequenceListContainer.addView(item)
         }
-        binding.tvSequencePreview.text = names.joinToString("  →  ")
 
         // 显示倒班周期信息
         binding.tvCycleInfo.text = getString(R.string.cycle_info_format, selectedSequence.size)
+    }
+
+    private fun createSequenceItem(
+        index: Int,
+        shiftTypeId: Long,
+        typeMap: Map<Long, ShiftType>
+    ): View {
+        val item = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(12, 10, 12, 10)
+            val bg = resources.getDrawable(R.drawable.shift_pill_bg, null).mutate()
+            bg.setColorFilter(Color.parseColor("#F0F1F3"), android.graphics.PorterDuff.Mode.SRC_IN)
+            background = bg
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 6
+            }
+            layoutParams = params
+        }
+
+        // 序号
+        val indexText = TextView(requireContext()).apply {
+            text = "${index + 1}."
+            textSize = 13f
+            setTextColor(Color.parseColor("#9CA3AF"))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = 12 }
+        }
+        item.addView(indexText)
+
+        // 班次色点
+        val shiftType = typeMap[shiftTypeId]
+        val colorDot = View(requireContext()).apply {
+            val color = try {
+                Color.parseColor(shiftType?.colorTag ?: "#4A6FA5")
+            } catch (e: Exception) {
+                Color.parseColor("#4A6FA5")
+            }
+            setBackgroundColor(color)
+            val dotDrawable = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(color)
+            }
+            background = dotDrawable
+            layoutParams = LinearLayout.LayoutParams(20, 20).apply { marginEnd = 8 }
+        }
+        item.addView(colorDot)
+
+        // 班次名
+        val nameText = TextView(requireContext()).apply {
+            text = shiftType?.name ?: "未知"
+            textSize = 14f
+            setTextColor(Color.parseColor("#1A1A2E"))
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { weight = 1f }
+        }
+        item.addView(nameText)
+
+        // 上移按钮
+        val btnUp = android.widget.ImageButton(requireContext()).apply {
+            setImageResource(android.R.drawable.arrow_up_float)
+            background = null
+            setPadding(8, 8, 8, 8)
+            isEnabled = index > 0
+            alpha = if (index > 0) 1f else 0.3f
+            setOnClickListener {
+                if (index > 0) {
+                    Collections.swap(selectedSequence, index, index - 1)
+                    updateSequencePreview()
+                }
+            }
+        }
+        item.addView(btnUp)
+
+        // 下移按钮
+        val btnDown = android.widget.ImageButton(requireContext()).apply {
+            setImageResource(android.R.drawable.arrow_down_float)
+            background = null
+            setPadding(8, 8, 8, 8)
+            isEnabled = index < selectedSequence.size - 1
+            alpha = if (index < selectedSequence.size - 1) 1f else 0.3f
+            setOnClickListener {
+                if (index < selectedSequence.size - 1) {
+                    Collections.swap(selectedSequence, index, index + 1)
+                    updateSequencePreview()
+                }
+            }
+        }
+        item.addView(btnDown)
+
+        // 删除按钮
+        val btnDelete = android.widget.ImageButton(requireContext()).apply {
+            setImageResource(android.R.drawable.ic_menu_delete)
+            background = null
+            setPadding(8, 8, 8, 8)
+            setOnClickListener {
+                selectedSequence.removeAt(index)
+                updateSequencePreview()
+            }
+        }
+        item.addView(btnDelete)
+
+        return item
     }
 
     private fun parseSequence(sequence: String): List<Long> {

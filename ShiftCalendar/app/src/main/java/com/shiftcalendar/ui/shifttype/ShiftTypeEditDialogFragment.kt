@@ -1,7 +1,6 @@
 package com.shiftcalendar.ui.shifttype
 
 import android.app.Dialog
-import android.app.TimePickerDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,6 +10,8 @@ import androidx.core.graphics.drawable.DrawableCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.shiftcalendar.R
 import com.shiftcalendar.data.entity.ShiftType
 import com.shiftcalendar.databinding.DialogShiftTypeEditBinding
@@ -108,23 +109,24 @@ class ShiftTypeEditDialogFragment : BottomSheetDialogFragment() {
 
     private fun showTimePicker(isStart: Boolean) {
         val current = if (isStart) startMinutes else endMinutes
-        val dialog = TimePickerDialog(
-            requireContext(),
-            R.style.ThemeOverlay_ShiftCalendar_TimePicker,
-            { _, hour, minute ->
-                val minutes = hour * 60 + minute
-                if (isStart) {
-                    startMinutes = minutes
-                } else {
-                    endMinutes = minutes
-                }
-                updateTimeDisplay()
-            },
-            current / 60,
-            current % 60,
-            true // 24 小时制
-        )
-        dialog.show()
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(current / 60)
+            .setMinute(current % 60)
+            .setTitleText(if (isStart) getString(R.string.shift_start_time) else getString(R.string.shift_end_time))
+            .build()
+
+        picker.addOnPositiveButtonClickListener {
+            val minutes = picker.hour * 60 + picker.minute
+            if (isStart) {
+                startMinutes = minutes
+            } else {
+                endMinutes = minutes
+            }
+            updateTimeDisplay()
+        }
+
+        picker.show(parentFragmentManager, if (isStart) "start_time" else "end_time")
     }
 
     private fun updateTimeDisplay() {

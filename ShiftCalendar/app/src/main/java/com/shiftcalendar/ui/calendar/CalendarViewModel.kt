@@ -52,6 +52,17 @@ class CalendarViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 重新加载当前视图范围的班次数据
+     */
+    private fun refreshShiftDays() {
+        viewModelScope.launch {
+            val range = getMonthRange()
+            val days = shiftDayDao.getByDateRangeStatic(range.first, range.second)
+            _shiftDays.postValue(days.associateBy { it.date })
+        }
+    }
+
     fun navigateToPrevious() {
         val cal = Calendar.getInstance().apply { timeInMillis = _currentMonthStart.value ?: getMonthStart() }
         if (_isWeekView.value == true) {
@@ -86,12 +97,43 @@ class CalendarViewModel : ViewModel() {
         _selectedDay.value = ShiftDayDetail(
             date = date,
             shiftType = shiftType,
-            note = shiftDay?.note ?: ""
+            note = shiftDay?.note ?: "",
+            shiftDay = shiftDay
         )
     }
 
     fun clearSelection() {
         _selectedDay.value = null
+    }
+
+    /**
+     * 保存备注到指定日期
+     */
+    fun saveNote(date: Long, note: String) {
+        viewModelScope.launch {
+            val existing = shiftDayDao.getByDate(date)
+            if (existing != null) {
+                shiftDayDao.updateNote(date, note)
+            }
+            refreshShiftDays()
+        }
+    }
+
+    /**
+     * 修改某天的班次类型（手动调整）
+     */
+    fun changeShiftType(date: Long, shiftTypeId: Long, note: String) {
+        viewModelScope.launch {
+            val existing = shiftDayDao.getByDate(date)
+            if (existing != null) {
+                shiftDayDao.updateShiftAndNote(date, shiftTypeId, note)
+            } else {
+                shiftDayDao.insertAll(listOf(
+                    ShiftDay(date = date, shiftTypeId = shiftTypeId, isGenerated = false, note = note)
+                ))
+            }
+            refreshShiftDays()
+        }
     }
 
     private fun getMonthRange(): Pair<Long, Long> {
@@ -145,5 +187,6 @@ data class CalendarData(
 data class ShiftDayDetail(
     val date: Long,
     val shiftType: ShiftType?,
-    val note: String
+    val note: String,
+    val shiftDay: ShiftDay? = null
 )

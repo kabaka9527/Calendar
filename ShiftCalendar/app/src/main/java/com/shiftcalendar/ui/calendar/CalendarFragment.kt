@@ -152,14 +152,15 @@ class CalendarFragment : Fragment() {
 
         val content = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER
-            setPadding(4, 4, 4, 4)
+            gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+            setPadding(2, 6, 2, 6)
         }
 
         val dayText = TextView(requireContext()).apply {
             text = SimpleDateFormat("d", Locale.getDefault()).format(Date(date))
-            textSize = 13f
+            textSize = 14f
             gravity = android.view.Gravity.CENTER
+            fontFamily = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
             if (!isCurrentMonth) {
                 setTextColor(Color.parseColor("#D1D5DB"))
             } else if (isToday) {
@@ -169,33 +170,48 @@ class CalendarFragment : Fragment() {
                 setTextColor(Color.parseColor("#1A1A2E"))
             }
         }
-
         content.addView(dayText)
 
         val shiftDay = data.shiftDays[date]
         val shiftType = shiftDay?.let { data.shiftTypes[it.shiftTypeId] }
 
         if (shiftType != null && isCurrentMonth) {
-            val dot = View(requireContext()).apply {
-                layoutParams = LinearLayout.LayoutParams(8, 8).apply {
-                    topMargin = 4
-                }
-                try {
-                    setBackgroundColor(Color.parseColor(shiftType.colorTag))
-                } catch (e: Exception) {
-                    setBackgroundColor(Color.parseColor("#4A6FA5"))
-                }
+            val pillColor = try {
+                Color.parseColor(shiftType.colorTag)
+            } catch (e: Exception) {
+                Color.parseColor("#4A6FA5")
             }
-            content.addView(dot)
 
-            val nameText = TextView(requireContext()).apply {
+            val pill = TextView(requireContext()).apply {
                 text = shiftType.name
                 textSize = 9f
-                setTextColor(Color.parseColor(shiftType.colorTag))
+                setTextColor(Color.WHITE)
                 gravity = android.view.Gravity.CENTER
                 maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(4, 2, 4, 2)
+                val bg = resources.getDrawable(R.drawable.shift_pill_bg, null).mutate()
+                bg.setColorFilter(pillColor, android.graphics.PorterDuff.Mode.SRC_IN)
+                background = bg
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = 6
+                }
             }
-            content.addView(nameText)
+            content.addView(pill)
+        }
+
+        // 有备注时显示小标记
+        if (shiftDay != null && shiftDay.note.isNotEmpty() && isCurrentMonth) {
+            val noteDot = View(requireContext()).apply {
+                setBackgroundColor(Color.parseColor("#9CA3AF"))
+                layoutParams = LinearLayout.LayoutParams(4, 4).apply {
+                    topMargin = 4
+                }
+            }
+            content.addView(noteDot)
         }
 
         cell.addView(content)
@@ -317,15 +333,59 @@ class CalendarFragment : Fragment() {
                 view.findViewById<View>(R.id.colorIndicator)
                     .setBackgroundColor(Color.parseColor(shiftType.colorTag))
             } catch (_: Exception) {}
-            view.findViewById<TextView>(R.id.tvNote).text = detail.note.ifEmpty { "无备注" }
         } else {
             view.findViewById<TextView>(R.id.tvShiftName).text = getString(R.string.no_shift)
             view.findViewById<TextView>(R.id.tvShiftTime).text = ""
-            view.findViewById<TextView>(R.id.tvNote).text = ""
+        }
+
+        val etNote = view.findViewById<android.widget.EditText>(R.id.etNote)
+        etNote.setText(detail.note)
+
+        // 保存备注
+        view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveNote)
+            .setOnClickListener {
+                val note = etNote.text.toString().trim()
+                val shiftTypeId = detail.shiftType?.id
+                if (shiftTypeId != null) {
+                    viewModel.changeShiftType(detail.date, shiftTypeId, note)
+                } else {
+                    viewModel.saveNote(detail.date, note)
+                }
+                android.widget.Toast.makeText(requireContext(), "备注已保存", android.widget.Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+
+        // 班次名点击可切换班次
+        view.findViewById<TextView>(R.id.tvShiftName).setOnClickListener {
+            showShiftTypePicker(dialog, detail)
         }
 
         dialog.setContentView(view)
         dialog.show()
+    }
+
+    private fun showShiftTypePicker(parentDialog: BottomSheetDialog, detail: ShiftDayDetail) {
+        val shiftTypes = viewModel.shiftTypes.value ?: emptyMap()
+        if (shiftTypes.isEmpty()) {
+            android.widget.Toast.makeText(requireContext(), R.string.empty_shift_hint, android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val typeList = shiftTypes.values.toList()
+        val items = typeList.map { it.name }.toTypedArray()
+        val checkedItem = typeList.indexOfFirst { it.id == detail.shiftType?.id }
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext(), R.style.Theme_ShiftCalendar)
+            .setTitle(R.string.day_detail)
+            .setSingleChoiceItems(items, checkedItem) { dlg, which ->
+                val selected = typeList[which]
+                val note = parentDialog.findViewById<android.widget.EditText>(R.id.etNote)?.text?.toString()?.trim() ?: ""
+                viewModel.changeShiftType(detail.date, selected.id, note)
+                dlg.dismiss()
+                parentDialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     override fun onDestroyView() {

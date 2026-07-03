@@ -14,6 +14,9 @@ interface ShiftDayDao {
     @Query("SELECT * FROM shift_days WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
     fun getByDateRangeLiveData(startDate: Long, endDate: Long): LiveData<List<ShiftDay>>
 
+    @Query("SELECT * FROM shift_days WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
+    suspend fun getByDateRangeStatic(startDate: Long, endDate: Long): List<ShiftDay>
+
     @Query("SELECT * FROM shift_days WHERE date = :date LIMIT 1")
     suspend fun getByDate(date: Long): ShiftDay?
 
@@ -28,4 +31,10 @@ interface ShiftDayDao {
 
     @Query("SELECT COUNT(*) FROM shift_days")
     suspend fun count(): Int
+
+    @Query("UPDATE shift_days SET note = :note WHERE date = :date")
+    suspend fun updateNote(date: Long, note: String)
+
+    @Query("UPDATE shift_days SET shiftTypeId = :shiftTypeId, note = :note WHERE date = :date")
+    suspend fun updateShiftAndNote(date: Long, shiftTypeId: Long, note: String)
 }

@@ -60,20 +60,20 @@ class CalendarFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        viewModel.getCurrentMonthStart().observe(viewLifecycleOwner) { monthStart ->
+        viewModel.currentMonthStart.observe(viewLifecycleOwner) { monthStart ->
             binding.tvMonthTitle.text = dateFormat.format(Date(monthStart))
         }
 
-        viewModel.getIsWeekView().observe(viewLifecycleOwner) { isWeek ->
+        viewModel.isWeekView.observe(viewLifecycleOwner) { isWeek ->
             binding.btnMonthView.isActivated = !isWeek
             binding.btnWeekView.isActivated = isWeek
         }
 
         // 合并观察 shiftDays, shiftTypes, monthStart, isWeekView
-        viewModel.getShiftDays().observe(viewLifecycleOwner) { _ -> renderIfReady() }
-        viewModel.getShiftTypes().observe(viewLifecycleOwner) { _ -> renderIfReady() }
-        viewModel.getCurrentMonthStart().observe(viewLifecycleOwner) { _ -> renderIfReady() }
-        viewModel.getIsWeekView().observe(viewLifecycleOwner) { _ -> renderIfReady() }
+        viewModel.shiftDays.observe(viewLifecycleOwner) { _ -> renderIfReady() }
+        viewModel.shiftTypes.observe(viewLifecycleOwner) { _ -> renderIfReady() }
+        viewModel.currentMonthStart.observe(viewLifecycleOwner) { _ -> renderIfReady() }
+        viewModel.isWeekView.observe(viewLifecycleOwner) { _ -> renderIfReady() }
 
         viewModel.selectedDay.observe(viewLifecycleOwner) { detail ->
             detail?.let { showDayDetail(it) }
@@ -81,10 +81,10 @@ class CalendarFragment : Fragment() {
     }
 
     private fun renderIfReady() {
-        val shiftDays = viewModel.getShiftDays().value ?: return
-        val shiftTypes = viewModel.getShiftTypes().value ?: return
-        val monthStart = viewModel.getCurrentMonthStart().value ?: return
-        val isWeekView = viewModel.getIsWeekView().value ?: return
+        val shiftDays = viewModel.shiftDays.value ?: return
+        val shiftTypes = viewModel.shiftTypes.value ?: return
+        val monthStart = viewModel.currentMonthStart.value ?: return
+        val isWeekView = viewModel.isWeekView.value ?: return
 
         val data = CalendarData(shiftDays, shiftTypes, monthStart, isWeekView)
         if (data.isWeekView) {

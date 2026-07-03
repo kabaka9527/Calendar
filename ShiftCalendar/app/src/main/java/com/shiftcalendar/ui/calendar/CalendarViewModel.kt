@@ -24,7 +24,9 @@ class CalendarViewModel : ViewModel() {
     val isWeekView: LiveData<Boolean> = _isWeekView
 
     private val _shiftDays = MutableLiveData<Map<Long, ShiftDay>>(emptyMap())
+    val shiftDays: LiveData<Map<Long, ShiftDay>> = _shiftDays
     private val _shiftTypes = MutableLiveData<Map<Long, ShiftType>>(emptyMap())
+    val shiftTypes: LiveData<Map<Long, ShiftType>> = _shiftTypes
 
     private val _selectedDay = MutableLiveData<ShiftDayDetail?>()
     val selectedDay: LiveData<ShiftDayDetail?> = _selectedDay
@@ -91,11 +93,6 @@ class CalendarViewModel : ViewModel() {
     fun clearSelection() {
         _selectedDay.value = null
     }
-
-    fun getShiftDays(): LiveData<Map<Long, ShiftDay>> = _shiftDays
-    fun getShiftTypes(): LiveData<Map<Long, ShiftType>> = _shiftTypes
-    fun getCurrentMonthStart(): LiveData<Long> = _currentMonthStart
-    fun getIsWeekView(): LiveData<Boolean> = _isWeekView
 
     private fun getMonthRange(): Pair<Long, Long> {
         val cal = Calendar.getInstance().apply {

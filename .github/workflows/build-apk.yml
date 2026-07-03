@@ -32,7 +32,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.4"
-          generate-job-summary: false
+          add-job-summary: false
 
       - name: Generate Gradle wrapper
         working-directory: ShiftCalendar

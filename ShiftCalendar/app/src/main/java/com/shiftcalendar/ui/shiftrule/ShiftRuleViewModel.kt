@@ -1,5 +1,7 @@
 package com.shiftcalendar.ui.shiftrule
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -8,9 +10,6 @@ import com.shiftcalendar.data.entity.ShiftRule
 import com.shiftcalendar.data.repository.ShiftRuleRepository
 import com.shiftcalendar.domain.generator.ShiftGenerator
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -18,14 +17,14 @@ class ShiftRuleViewModel(
     private val repository: ShiftRuleRepository
 ) : ViewModel() {
 
-    private val _rules = MutableStateFlow<List<ShiftRule>>(emptyList())
-    val rules: StateFlow<List<ShiftRule>> = _rules.asStateFlow()
+    private val _rules = MutableLiveData<List<ShiftRule>>(emptyList())
+    val rules: LiveData<List<ShiftRule>> = _rules
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isLoading = MutableLiveData(false)
+    val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _generationProgress = MutableStateFlow("")
-    val generationProgress: StateFlow<String> = _generationProgress.asStateFlow()
+    private val _generationProgress = MutableLiveData("")
+    val generationProgress: LiveData<String> = _generationProgress
 
     private val generator = ShiftGenerator(ShiftCalendarApp.instance.database)
 
@@ -36,7 +35,7 @@ class ShiftRuleViewModel(
     private fun loadRules() {
         viewModelScope.launch {
             repository.getAll().collect { rules ->
-                _rules.value = rules
+                _rules.postValue(rules)
             }
         }
     }

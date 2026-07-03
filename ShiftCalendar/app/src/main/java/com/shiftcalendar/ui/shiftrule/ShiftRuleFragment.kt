@@ -53,7 +53,7 @@ class ShiftRuleFragment : Fragment() {
 
         viewModel.generationProgress.observe(viewLifecycleOwner) { progress ->
             if (progress.isNotEmpty()) {
-                Toast.makeText(requireContext(), progress, Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), progress as CharSequence, Toast.LENGTH_SHORT).show()
             }
         }
     }

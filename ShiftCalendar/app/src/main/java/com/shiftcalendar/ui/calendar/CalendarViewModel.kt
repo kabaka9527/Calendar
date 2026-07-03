@@ -1,15 +1,13 @@
 package com.shiftcalendar.ui.calendar
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.shiftcalendar.ShiftCalendarApp
 import com.shiftcalendar.data.entity.ShiftDay
 import com.shiftcalendar.data.entity.ShiftType
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -19,23 +17,17 @@ class CalendarViewModel : ViewModel() {
     private val shiftDayDao = db.shiftDayDao()
     private val shiftTypeDao = db.shiftTypeDao()
 
-    private val _currentMonthStart = MutableStateFlow(getMonthStart())
-    val currentMonthStart: StateFlow<Long> = _currentMonthStart.asStateFlow()
+    private val _currentMonthStart = MutableLiveData(getMonthStart())
+    val currentMonthStart: LiveData<Long> = _currentMonthStart
 
-    private val _isWeekView = MutableStateFlow(false)
-    val isWeekView: StateFlow<Boolean> = _isWeekView.asStateFlow()
+    private val _isWeekView = MutableLiveData(false)
+    val isWeekView: LiveData<Boolean> = _isWeekView
 
-    private val _shiftDays = MutableStateFlow<Map<Long, ShiftDay>>(emptyMap())
-    private val _shiftTypes = MutableStateFlow<Map<Long, ShiftType>>(emptyMap())
+    private val _shiftDays = MutableLiveData<Map<Long, ShiftDay>>(emptyMap())
+    private val _shiftTypes = MutableLiveData<Map<Long, ShiftType>>(emptyMap())
 
-    val calendarData: StateFlow<CalendarData> = combine(
-        _shiftDays, _shiftTypes, _currentMonthStart, _isWeekView
-    ) { days, types, monthStart, isWeek ->
-        CalendarData(days, types, monthStart, isWeek)
-    }.asStateFlow()
-
-    private val _selectedDay = MutableStateFlow<ShiftDayDetail?>(null)
-    val selectedDay: StateFlow<ShiftDayDetail?> = _selectedDay.asStateFlow()
+    private val _selectedDay = MutableLiveData<ShiftDayDetail?>()
+    val selectedDay: LiveData<ShiftDayDetail?> = _selectedDay
 
     init {
         loadShiftTypes()
@@ -43,27 +35,24 @@ class CalendarViewModel : ViewModel() {
     }
 
     private fun loadShiftTypes() {
-        viewModelScope.launch {
-            shiftTypeDao.getAllLiveData().observeForever { types ->
-                _shiftTypes.value = types.associateBy { it.id }
-            }
+        shiftTypeDao.getAllLiveData().observeForever { types ->
+            _shiftTypes.postValue(types.associateBy { it.id })
         }
     }
 
     private fun loadShiftDays() {
         viewModelScope.launch {
-            // 加载当前月份前后各 3 个月的数据
             val range = getMonthRange()
             shiftDayDao.getByDateRangeLiveData(range.first, range.second)
                 .observeForever { days ->
-                    _shiftDays.value = days.associateBy { it.date }
+                    _shiftDays.postValue(days.associateBy { it.date })
                 }
         }
     }
 
     fun navigateToPrevious() {
-        val cal = Calendar.getInstance().apply { timeInMillis = _currentMonthStart.value }
-        if (_isWeekView.value) {
+        val cal = Calendar.getInstance().apply { timeInMillis = _currentMonthStart.value ?: getMonthStart() }
+        if (_isWeekView.value == true) {
             cal.add(Calendar.WEEK_OF_YEAR, -1)
         } else {
             cal.add(Calendar.MONTH, -1)
@@ -72,8 +61,8 @@ class CalendarViewModel : ViewModel() {
     }
 
     fun navigateToNext() {
-        val cal = Calendar.getInstance().apply { timeInMillis = _currentMonthStart.value }
-        if (_isWeekView.value) {
+        val cal = Calendar.getInstance().apply { timeInMillis = _currentMonthStart.value ?: getMonthStart() }
+        if (_isWeekView.value == true) {
             cal.add(Calendar.WEEK_OF_YEAR, 1)
         } else {
             cal.add(Calendar.MONTH, 1)
@@ -82,7 +71,7 @@ class CalendarViewModel : ViewModel() {
     }
 
     fun toggleView() {
-        _isWeekView.value = !_isWeekView.value
+        _isWeekView.value = !(_isWeekView.value ?: false)
     }
 
     fun goToToday() {
@@ -90,8 +79,8 @@ class CalendarViewModel : ViewModel() {
     }
 
     fun selectDay(date: Long) {
-        val shiftDay = _shiftDays.value[date]
-        val shiftType = shiftDay?.let { _shiftTypes.value[it.shiftTypeId] }
+        val shiftDay = _shiftDays.value?.get(date)
+        val shiftType = shiftDay?.let { _shiftTypes.value?.get(it.shiftTypeId) }
         _selectedDay.value = ShiftDayDetail(
             date = date,
             shiftType = shiftType,
@@ -103,9 +92,14 @@ class CalendarViewModel : ViewModel() {
         _selectedDay.value = null
     }
 
+    fun getShiftDays(): LiveData<Map<Long, ShiftDay>> = _shiftDays
+    fun getShiftTypes(): LiveData<Map<Long, ShiftType>> = _shiftTypes
+    fun getCurrentMonthStart(): LiveData<Long> = _currentMonthStart
+    fun getIsWeekView(): LiveData<Boolean> = _isWeekView
+
     private fun getMonthRange(): Pair<Long, Long> {
         val cal = Calendar.getInstance().apply {
-            timeInMillis = _currentMonthStart.value
+            timeInMillis = _currentMonthStart.value ?: getMonthStart()
             add(Calendar.MONTH, -3)
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, 0)
@@ -116,7 +110,7 @@ class CalendarViewModel : ViewModel() {
         val start = cal.timeInMillis
 
         cal.apply {
-            timeInMillis = _currentMonthStart.value
+            timeInMillis = _currentMonthStart.value ?: getMonthStart()
             add(Calendar.MONTH, 4)
             set(Calendar.DAY_OF_MONTH, 1)
         }

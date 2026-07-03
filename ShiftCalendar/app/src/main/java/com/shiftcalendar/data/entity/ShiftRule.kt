@@ -18,4 +18,4 @@ data class ShiftRule(
     val shiftSequence: String,    // JSON 数组: shiftTypeId 列表
     val createdAt: Long = System.currentTimeMillis(),
     val isActive: Boolean = true
-)
+) : java.io.Serializable

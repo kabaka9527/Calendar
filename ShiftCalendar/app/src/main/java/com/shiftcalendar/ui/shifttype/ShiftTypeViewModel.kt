@@ -1,25 +1,24 @@
 package com.shiftcalendar.ui.shifttype
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.shiftcalendar.ShiftCalendarApp
 import com.shiftcalendar.data.entity.ShiftType
 import com.shiftcalendar.data.repository.ShiftTypeRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ShiftTypeViewModel(
     private val repository: ShiftTypeRepository
 ) : ViewModel() {
 
-    private val _shiftTypes = MutableStateFlow<List<ShiftType>>(emptyList())
-    val shiftTypes: StateFlow<List<ShiftType>> = _shiftTypes.asStateFlow()
+    private val _shiftTypes = MutableLiveData<List<ShiftType>>(emptyList())
+    val shiftTypes: LiveData<List<ShiftType>> = _shiftTypes
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isLoading = MutableLiveData(false)
+    val isLoading: LiveData<Boolean> = _isLoading
 
     init {
         loadShiftTypes()
@@ -28,7 +27,7 @@ class ShiftTypeViewModel(
     private fun loadShiftTypes() {
         viewModelScope.launch {
             repository.getAll().collect { types ->
-                _shiftTypes.value = types
+                _shiftTypes.postValue(types)
             }
         }
     }

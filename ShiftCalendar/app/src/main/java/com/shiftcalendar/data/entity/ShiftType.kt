@@ -15,4 +15,4 @@ data class ShiftType(
     val startTime: String,      // 格式 "HH:mm"
     val endTime: String,        // 格式 "HH:mm"
     val sortOrder: Int = 0      // 排序权重
-)
+) : java.io.Serializable

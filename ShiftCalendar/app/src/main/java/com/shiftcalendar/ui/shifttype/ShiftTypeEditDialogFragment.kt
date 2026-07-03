@@ -10,6 +10,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.shiftcalendar.R
 import com.shiftcalendar.data.entity.ShiftType
 import com.shiftcalendar.databinding.DialogShiftTypeEditBinding
 

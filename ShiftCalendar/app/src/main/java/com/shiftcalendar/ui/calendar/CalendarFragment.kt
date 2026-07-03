@@ -160,7 +160,7 @@ class CalendarFragment : Fragment() {
             text = SimpleDateFormat("d", Locale.getDefault()).format(Date(date))
             textSize = 14f
             gravity = android.view.Gravity.CENTER
-            fontFamily = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+            typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
             if (!isCurrentMonth) {
                 setTextColor(Color.parseColor("#D1D5DB"))
             } else if (isToday) {

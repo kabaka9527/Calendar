@@ -8,10 +8,17 @@ import android.view.ViewGroup
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.chip.Chip
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.shiftcalendar.R
+import com.shiftcalendar.ShiftCalendarApp
 import com.shiftcalendar.data.entity.ShiftRule
+import com.shiftcalendar.data.entity.ShiftType
 import com.shiftcalendar.databinding.DialogShiftRuleEditBinding
-import org.json.JSONArray
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -22,6 +29,10 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private var editingRule: ShiftRule? = null
     private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+
+    // 选中的班次类型序列（按点击顺序）
+    private val selectedSequence = mutableListOf<Long>()
+    private var shiftTypes: List<ShiftType> = emptyList()
 
     var onSaveListener: ((ShiftRule) -> Unit)? = null
 
@@ -49,18 +60,21 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
         editingRule?.let { rule ->
             binding.etName.setText(rule.name)
             binding.etCycleDays.setText(rule.cycleDays.toString())
-            binding.etSequence.setText(rule.shiftSequence)
             binding.tvStartDate.text = dateFormat.format(java.util.Date(rule.startDate))
             binding.tvTitle.text = getString(R.string.edit_rule)
+            // 解析已有序列
+            selectedSequence.clear()
+            selectedSequence.addAll(parseSequence(rule.shiftSequence))
         } ?: run {
             binding.tvTitle.text = getString(R.string.add_rule)
             binding.tvStartDate.text = dateFormat.format(java.util.Date())
         }
 
-        binding.layoutStartDate.setOnClickListener {
-            // 使用日期选择器，这里简化处理
-            val calendar = Calendar.getInstance()
-            binding.tvStartDate.text = dateFormat.format(calendar.time)
+        binding.layoutStartDate.setOnClickListener { showDatePicker() }
+
+        binding.btnSequenceClear.setOnClickListener {
+            selectedSequence.clear()
+            updateSequencePreview()
         }
 
         binding.btnSave.setOnClickListener {
@@ -77,36 +91,126 @@ class ShiftRuleEditDialogFragment : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val sequence = binding.etSequence.text.toString().trim()
-            if (sequence.isEmpty()) {
-                binding.etSequence.error = "请输入班次序列"
+            if (selectedSequence.isEmpty()) {
+                binding.tvSequencePreview.text = "请选择至少一个班次"
                 return@setOnClickListener
             }
 
-            try {
-                val startDate = try {
-                    dateFormat.parse(binding.tvStartDate.text.toString())?.time ?: System.currentTimeMillis()
-                } catch (e: Exception) {
-                    System.currentTimeMillis()
-                }
-
-                val rule = ShiftRule(
-                    id = editingRule?.id ?: 0,
-                    name = name,
-                    startDate = startDate,
-                    cycleDays = cycleDays,
-                    shiftSequence = sequence,
-                    createdAt = editingRule?.createdAt ?: System.currentTimeMillis()
-                )
-
-                onSaveListener?.invoke(rule)
-                dismiss()
+            val startDate = try {
+                dateFormat.parse(binding.tvStartDate.text.toString())?.time ?: System.currentTimeMillis()
             } catch (e: Exception) {
-                binding.etSequence.error = "序列格式错误"
+                System.currentTimeMillis()
             }
+
+            val rule = ShiftRule(
+                id = editingRule?.id ?: 0,
+                name = name,
+                startDate = startDate,
+                cycleDays = cycleDays,
+                shiftSequence = selectedSequence.joinToString(","),
+                createdAt = editingRule?.createdAt ?: System.currentTimeMillis()
+            )
+
+            onSaveListener?.invoke(rule)
+            dismiss()
         }
 
         binding.btnCancel.setOnClickListener { dismiss() }
+
+        loadShiftTypes()
+    }
+
+    private fun showDatePicker() {
+        val currentSelection = try {
+            dateFormat.parse(binding.tvStartDate.text.toString())?.time
+                ?: MaterialDatePicker.todayInUtcMilliseconds()
+        } catch (e: Exception) {
+            MaterialDatePicker.todayInUtcMilliseconds()
+        }
+
+        val datePicker = MaterialDatePicker.Builder.datePicker()
+            .setSelection(currentSelection)
+            .setTitleText(getString(R.string.start_date))
+            .build()
+
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            // MaterialDatePicker 返回 UTC 毫秒，转换为本地时区当天的 00:00
+            val calendar = Calendar.getInstance().apply {
+                timeInMillis = selection
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            binding.tvStartDate.text = dateFormat.format(calendar.time)
+        }
+
+        datePicker.show(parentFragmentManager, "start_date")
+    }
+
+    private fun loadShiftTypes() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val types = ShiftCalendarApp.instance.database.shiftTypeDao()
+                    .getAllStaticList()
+                withContext(Dispatchers.Main) {
+                    shiftTypes = types
+                    setupSequenceChips()
+                    updateSequencePreview()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    binding.tvSequencePreview.text = getString(R.string.shift_sequence_empty)
+                }
+            }
+        }
+    }
+
+    private fun setupSequenceChips() {
+        binding.chipGroupSequence.removeAllViews()
+
+        if (shiftTypes.isEmpty()) {
+            binding.tvSequencePreview.text = getString(R.string.shift_sequence_empty)
+            return
+        }
+
+        shiftTypes.forEach { shiftType ->
+            val chip = Chip(requireContext()).apply {
+                text = shiftType.name
+                isCheckable = false
+                isClickable = true
+                setOnClickListener {
+                    selectedSequence.add(shiftType.id)
+                    updateSequencePreview()
+                }
+            }
+            binding.chipGroupSequence.addView(chip)
+        }
+    }
+
+    private fun updateSequencePreview() {
+        if (selectedSequence.isEmpty()) {
+            binding.tvSequencePreview.text = ""
+            return
+        }
+
+        val typeMap = shiftTypes.associateBy { it.id }
+        val names = selectedSequence.mapIndexed { index, id ->
+            val name = typeMap[id]?.name ?: "未知"
+            "${index + 1}. $name"
+        }
+        binding.tvSequencePreview.text = names.joinToString("  →  ")
+    }
+
+    private fun parseSequence(sequence: String): List<Long> {
+        return try {
+            sequence.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .map { it.toLong() }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     override fun onDestroyView() {

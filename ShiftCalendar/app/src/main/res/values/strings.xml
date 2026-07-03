@@ -28,6 +28,9 @@
     <string name="start_date">起始日期</string>
     <string name="cycle_days">周期天数</string>
     <string name="shift_sequence">班次序列</string>
+    <string name="shift_sequence_hint">按周期顺序点击班次类型，构成一个周期的轮转</string>
+    <string name="shift_sequence_empty">请先在"班次"页添加班次类型</string>
+    <string name="sequence_clear">清空</string>
     <string name="preview_label">未来 7 天预览</string>
     <string name="generate_shifts">生成班次</string>
     <string name="regenerate_confirm">修改规律将重新生成全部班次，是否继续？</string>

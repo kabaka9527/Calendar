@@ -12,6 +12,9 @@ interface ShiftTypeDao {
     fun getAll(): Flow<List<ShiftType>>
 
     @Query("SELECT * FROM shift_types ORDER BY sortOrder ASC")
+    suspend fun getAllStaticList(): List<ShiftType>
+
+    @Query("SELECT * FROM shift_types ORDER BY sortOrder ASC")
     fun getAllLiveData(): LiveData<List<ShiftType>>
 
     @Query("SELECT * FROM shift_types WHERE id = :id")

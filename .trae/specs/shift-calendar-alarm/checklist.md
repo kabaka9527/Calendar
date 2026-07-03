@@ -1,0 +1,25 @@
+# Checklist
+
+- [x] ShiftType 实体包含 `alarmEnabled: Boolean?` 字段，默认 null
+- [x] AppDatabase 版本号 = 2，使用 destructive migration
+- [x] ShiftTypeEditDialog 包含闹钟开关（SwitchCompat），编辑保存后数据库正确更新
+- [x] ShiftTypeAdapter 列表项显示闹钟开关状态图标
+- [x] AlarmSettings 正确读写 SharedPreferences，默认值合理
+- [x] NotificationHelper 成功创建通知渠道，showAlarmNotification 显示正确内容
+- [x] AlarmScheduler.computeNextAlarm 纯函数逻辑正确：过滤 alarmEnabled=false，计算 triggerTime，取最早
+- [x] AlarmScheduler.scheduleNext 正确查询数据库并用 setAlarmClock 注册
+- [x] AlarmScheduler.cancel 正确取消已注册闹钟
+- [x] AlarmReceiver 接收广播后弹出通知，并接力调度下一个闹钟
+- [x] AlarmBootReceiver 接收 BOOT_COMPLETED 广播后恢复调度
+- [x] SettingsFragment 正确展示全局设置：总开关、提前分钟数、震动、铃声
+- [x] SettingsViewModel 设置变更后自动触发 reschedule
+- [x] 底部导航包含四个 Tab（日历/班次/规律/设置），切换正常
+- [x] MainActivity 启动时兜底调度（try-catch 保护，不崩溃）
+- [x] ShiftGenerator.generate 生成后调度（try-catch 保护）
+- [x] CalendarViewModel.changeShiftType 改班次后调度（try-catch 保护）
+- [x] ShiftTypeViewModel.saveShiftType/deleteShiftType 变更后调度（try-catch 保护）
+- [x] ProGuard 规则覆盖 alarm、settings、shifttype、shiftrule、domain、database 包
+- [x] AndroidManifest 声明所需权限（POST_NOTIFICATIONS、RECEIVE_BOOT_COMPLETED、SCHEDULE_EXACT_ALARM、USE_EXACT_ALARM）
+- [x] 设置页 UI 使用 SwitchCompat，与 Material 2 主题兼容，不崩溃
+- [x] 所有 scheduleNext 调用点包裹 try-catch，异常不传播
+- [ ] Release 构建 APK 安装后启动不崩溃（需在有 SDK 环境执行 ./gradlew assembleRelease 验证）

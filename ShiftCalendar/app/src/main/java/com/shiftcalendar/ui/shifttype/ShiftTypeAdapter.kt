@@ -39,6 +39,12 @@ class ShiftTypeAdapter(
                 binding.colorDot.background.setTint(Color.parseColor("#4A6FA5"))
             }
 
+            binding.ivAlarm.visibility = if (shiftType.alarmEnabled != false) {
+                android.view.View.VISIBLE
+            } else {
+                android.view.View.GONE
+            }
+
             binding.root.setOnClickListener { onItemClick(shiftType) }
             binding.root.setOnLongClickListener {
                 onItemLongClick(shiftType)

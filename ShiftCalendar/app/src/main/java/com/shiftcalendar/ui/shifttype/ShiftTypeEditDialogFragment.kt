@@ -57,8 +57,10 @@ class ShiftTypeEditDialogFragment : BottomSheetDialogFragment() {
             selectedColor = shiftType.colorTag
             updateColorPreview()
             binding.tvTitle.text = getString(R.string.edit_shift)
+            binding.switchAlarmEnabled.isChecked = shiftType.alarmEnabled != false
         } ?: run {
             binding.tvTitle.text = getString(R.string.add_shift)
+            binding.switchAlarmEnabled.isChecked = true
         }
 
         updateTimeDisplay()
@@ -97,7 +99,8 @@ class ShiftTypeEditDialogFragment : BottomSheetDialogFragment() {
                 colorTag = selectedColor,
                 startTime = formatMinutes(startMinutes),
                 endTime = formatMinutes(endMinutes),
-                sortOrder = editingShiftType?.sortOrder ?: 0
+                sortOrder = editingShiftType?.sortOrder ?: 0,
+                alarmEnabled = binding.switchAlarmEnabled.isChecked
             )
 
             onSaveListener?.invoke(shiftType)

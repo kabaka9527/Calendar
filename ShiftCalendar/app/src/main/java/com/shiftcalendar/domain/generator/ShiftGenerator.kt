@@ -1,5 +1,7 @@
 package com.shiftcalendar.domain.generator
 
+import com.shiftcalendar.ShiftCalendarApp
+import com.shiftcalendar.alarm.AlarmScheduler
 import com.shiftcalendar.data.database.AppDatabase
 import com.shiftcalendar.data.entity.ShiftDay
 import com.shiftcalendar.data.entity.ShiftRule
@@ -70,6 +72,12 @@ open class ShiftGenerator(private val database: AppDatabase) {
 
         // 批量插入（OnConflictStrategy.REPLACE 确保冲突时覆盖）
         shiftDayDao.insertAll(shiftDays)
+
+        // 调度闹钟
+        try {
+            AlarmScheduler.scheduleNext(ShiftCalendarApp.instance)
+        } catch (_: Exception) {
+        }
     }
 
     /**

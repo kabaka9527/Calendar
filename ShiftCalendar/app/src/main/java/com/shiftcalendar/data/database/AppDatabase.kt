@@ -17,7 +17,7 @@ import com.shiftcalendar.data.entity.ShiftType
         ShiftRule::class,
         ShiftDay::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

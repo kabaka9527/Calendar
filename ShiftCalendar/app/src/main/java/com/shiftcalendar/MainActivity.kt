@@ -7,10 +7,15 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import com.shiftcalendar.alarm.AlarmScheduler
 import com.shiftcalendar.databinding.ActivityMainBinding
 import com.shiftcalendar.ui.calendar.CalendarFragment
+import com.shiftcalendar.ui.settings.SettingsFragment
 import com.shiftcalendar.ui.shiftrule.ShiftRuleFragment
 import com.shiftcalendar.ui.shifttype.ShiftTypeFragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private val calendarFragment = CalendarFragment()
     private val shiftTypeFragment = ShiftTypeFragment()
     private val shiftRuleFragment = ShiftRuleFragment()
+    private val settingsFragment = SettingsFragment()
     private val fragmentManager = supportFragmentManager
     private var activeFragment: Fragment = calendarFragment
     private var prefersReducedMotion: Boolean = false
@@ -35,6 +41,14 @@ class MainActivity : AppCompatActivity() {
 
         setupBottomNavigation()
         loadInitialFragment()
+
+        // 启动时调度闹钟
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                AlarmScheduler.scheduleNext(this@MainActivity)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     /**
@@ -81,6 +95,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_calendar -> switchFragment(calendarFragment)
                 R.id.nav_shifts -> switchFragment(shiftTypeFragment)
                 R.id.nav_rules -> switchFragment(shiftRuleFragment)
+                R.id.nav_settings -> switchFragment(settingsFragment)
             }
             true
         }
@@ -88,6 +103,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadInitialFragment() {
         fragmentManager.beginTransaction()
+            .add(R.id.fragmentContainer, settingsFragment, "settings")
+            .hide(settingsFragment)
             .add(R.id.fragmentContainer, shiftRuleFragment, "rule")
             .hide(shiftRuleFragment)
             .add(R.id.fragmentContainer, shiftTypeFragment, "shift")

@@ -52,4 +52,20 @@
     <!-- Common -->
     <string name="confirm">确定</string>
     <string name="loading">加载中…</string>
+
+    <!-- Settings -->
+    <string name="nav_settings">设置</string>
+    <string name="settings_section_alarm">闹钟设置</string>
+    <string name="settings_alarm_enabled">启用闹钟提醒</string>
+    <string name="settings_lead_time">提前提醒</string>
+    <string name="settings_lead_0">准时</string>
+    <string name="settings_lead_15">15分钟</string>
+    <string name="settings_lead_30">30分钟</string>
+    <string name="settings_lead_60">1小时</string>
+    <string name="settings_vibrate">振动</string>
+    <string name="settings_ringtone">铃声</string>
+    <string name="settings_ringtone_default">系统默认</string>
+
+    <!-- Shift Type Alarm -->
+    <string name="shift_alarm_enabled">启用闹钟提醒</string>
 </resources>

@@ -14,5 +14,6 @@ data class ShiftType(
     val colorTag: String,       // 颜色标签 hex 值，如 "#7BA587"
     val startTime: String,      // 格式 "HH:mm"
     val endTime: String,        // 格式 "HH:mm"
-    val sortOrder: Int = 0      // 排序权重
+    val sortOrder: Int = 0,     // 排序权重
+    val alarmEnabled: Boolean? = null  // null/true = 闹钟启用, false = 禁用
 ) : java.io.Serializable

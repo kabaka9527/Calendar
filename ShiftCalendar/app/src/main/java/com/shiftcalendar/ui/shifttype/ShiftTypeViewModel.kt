@@ -6,8 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.shiftcalendar.ShiftCalendarApp
+import com.shiftcalendar.alarm.AlarmScheduler
 import com.shiftcalendar.data.entity.ShiftType
 import com.shiftcalendar.data.repository.ShiftTypeRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ShiftTypeViewModel(
@@ -39,12 +42,26 @@ class ShiftTypeViewModel(
             } else {
                 repository.update(shiftType)
             }
+            scheduleNextSafely()
         }
     }
 
     fun deleteShiftType(shiftType: ShiftType) {
         viewModelScope.launch {
             repository.delete(shiftType)
+            scheduleNextSafely()
+        }
+    }
+
+    private fun scheduleNextSafely() {
+        try {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    AlarmScheduler.scheduleNext(ShiftCalendarApp.instance)
+                } catch (_: Exception) {
+                }
+            }
+        } catch (_: Exception) {
         }
     }
 

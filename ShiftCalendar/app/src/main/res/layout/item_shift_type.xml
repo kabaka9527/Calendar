@@ -40,6 +40,15 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/ivAlarm"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:src="@drawable/ic_alarm"
+        android:contentDescription="闹钟"
+        android:layout_marginEnd="12dp"
+        android:visibility="gone" />
+
+    <ImageView
         android:id="@+id/ivDragHandle"
         android:layout_width="20dp"
         android:layout_height="20dp"

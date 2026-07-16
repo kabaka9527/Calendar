@@ -5,8 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -32,9 +32,6 @@ class MainActivity : AppCompatActivity() {
     private val fragmentManager = supportFragmentManager
     private var activeFragment: Fragment = calendarFragment
     private var prefersReducedMotion: Boolean = false
-
-    private val requestNotificationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,9 +68,22 @@ class MainActivity : AppCompatActivity() {
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
             if (!granted) {
-                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
             }
         }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // 通知权限结果无需特殊处理，用户拒绝也不影响 app 运行
     }
 
     /**
@@ -149,5 +159,9 @@ class MainActivity : AppCompatActivity() {
         }
         transaction.hide(activeFragment).show(fragment).commit()
         activeFragment = fragment
+    }
+
+    companion object {
+        private const val REQUEST_NOTIFICATION_PERMISSION = 100
     }
 }

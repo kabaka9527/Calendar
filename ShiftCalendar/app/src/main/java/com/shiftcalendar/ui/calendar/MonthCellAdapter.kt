@@ -1,9 +1,11 @@
 package com.shiftcalendar.ui.calendar
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.shiftcalendar.R
 import com.shiftcalendar.data.entity.ShiftDay
@@ -35,7 +37,12 @@ class MonthCellAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(data: MonthCellData) {
+            val ctx = binding.root.context
             binding.tvDay.text = data.dayNumber.toString()
+
+            val colorPrimary = ContextCompat.getColor(ctx, R.color.text_primary)
+            val colorTertiary = ContextCompat.getColor(ctx, R.color.text_tertiary)
+            val colorAccent = ContextCompat.getColor(ctx, R.color.accent)
 
             // 背景：今日高亮 > 非本月 > 普通
             when {
@@ -47,12 +54,12 @@ class MonthCellAdapter(
                 !data.isCurrentMonth -> {
                     binding.cardRoot.setBackgroundResource(R.drawable.month_cell_bg_other)
                     binding.tvDay.background = null
-                    binding.tvDay.setTextColor(Color.parseColor("#D1D5DB"))
+                    binding.tvDay.setTextColor(colorTertiary)
                 }
                 else -> {
                     binding.cardRoot.setBackgroundResource(R.drawable.month_cell_bg)
                     binding.tvDay.background = null
-                    binding.tvDay.setTextColor(Color.parseColor("#1A1A2E"))
+                    binding.tvDay.setTextColor(colorPrimary)
                 }
             }
 
@@ -62,10 +69,10 @@ class MonthCellAdapter(
                 val color = try {
                     Color.parseColor(shiftType.colorTag)
                 } catch (_: Exception) {
-                    Color.parseColor("#4A6FA5")
+                    colorAccent
                 }
                 binding.shiftColorBar.visibility = View.VISIBLE
-                binding.shiftColorBar.setBackgroundColor(color)
+                binding.shiftColorBar.backgroundTintList = ColorStateList.valueOf(color)
                 binding.tvShiftName.visibility = View.VISIBLE
                 binding.tvShiftName.text = shiftType.name
                 binding.tvShiftName.setTextColor(color)

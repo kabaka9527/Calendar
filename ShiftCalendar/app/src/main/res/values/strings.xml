@@ -45,6 +45,7 @@
     <string name="day_detail">班次详情</string>
     <string name="unknown_shift">未知班次</string>
     <string name="no_shift">无班次</string>
+    <string name="select_shift">选择班次</string>
     <string name="empty_shift_hint">暂无班次，请先添加班次类型</string>
     <string name="empty_rule_hint">暂无规律，请先添加倒班规律</string>
     <string name="empty_calendar_hint">暂无日历数据，请先生成班次</string>

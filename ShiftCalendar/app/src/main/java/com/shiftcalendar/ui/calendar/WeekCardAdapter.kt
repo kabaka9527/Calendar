@@ -1,9 +1,11 @@
 package com.shiftcalendar.ui.calendar
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.shiftcalendar.R
 import com.shiftcalendar.data.entity.ShiftType
@@ -33,6 +35,10 @@ class WeekCardAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(data: WeekCardData) {
+            val ctx = binding.root.context
+            val colorPrimary = ContextCompat.getColor(ctx, R.color.text_primary)
+            val colorAccent = ContextCompat.getColor(ctx, R.color.accent)
+
             binding.tvWeekDay.text = data.weekDayName
             binding.tvDay.text = data.dayNumber.toString()
 
@@ -42,7 +48,7 @@ class WeekCardAdapter(
                 binding.tvDay.setTextColor(Color.WHITE)
             } else {
                 binding.tvDay.background = null
-                binding.tvDay.setTextColor(Color.parseColor("#1A1A2E"))
+                binding.tvDay.setTextColor(colorPrimary)
             }
 
             // 班次信息
@@ -51,10 +57,10 @@ class WeekCardAdapter(
                 val color = try {
                     Color.parseColor(shiftType.colorTag)
                 } catch (_: Exception) {
-                    Color.parseColor("#4A6FA5")
+                    colorAccent
                 }
                 binding.shiftColorBar.visibility = View.VISIBLE
-                binding.shiftColorBar.setBackgroundColor(color)
+                binding.shiftColorBar.backgroundTintList = ColorStateList.valueOf(color)
                 binding.tvShiftName.visibility = View.VISIBLE
                 binding.tvShiftName.text = shiftType.name
                 binding.tvShiftName.setTextColor(color)
@@ -74,6 +80,9 @@ class WeekCardAdapter(
         val binding = ItemWeekCardBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
+        // 每张卡片占 RecyclerView 宽度的 1/7
+        val cardWidth = (parent.width / 7).coerceAtLeast(1)
+        binding.root.layoutParams = RecyclerView.LayoutParams(cardWidth, ViewGroup.LayoutParams.MATCH_PARENT)
         return ViewHolder(binding)
     }
 

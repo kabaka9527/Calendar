@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.map
+import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import com.shiftcalendar.ShiftCalendarApp
 import com.shiftcalendar.alarm.AlarmScheduler
@@ -26,8 +28,14 @@ class CalendarViewModel : ViewModel() {
     private val _isWeekView = MutableLiveData(false)
     val isWeekView: LiveData<Boolean> = _isWeekView
 
-    private val _shiftDays = MutableLiveData<Map<Long, ShiftDay>>(emptyMap())
-    val shiftDays: LiveData<Map<Long, ShiftDay>> = _shiftDays
+    // 当 currentMonthStart 变化时自动重新查询对应范围的班次数据
+    val shiftDays: LiveData<Map<Long, ShiftDay>> = _currentMonthStart.switchMap { monthStart ->
+        val range = getMonthRangeFor(monthStart)
+        shiftDayDao.getByDateRangeLiveData(range.first, range.second).map { days ->
+            days.associateBy { it.date }
+        }
+    }
+
     private val _shiftTypes = MutableLiveData<Map<Long, ShiftType>>(emptyMap())
     val shiftTypes: LiveData<Map<Long, ShiftType>> = _shiftTypes
 
@@ -36,33 +44,11 @@ class CalendarViewModel : ViewModel() {
 
     init {
         loadShiftTypes()
-        loadShiftDays()
     }
 
     private fun loadShiftTypes() {
         shiftTypeDao.getAllLiveData().observeForever { types ->
             _shiftTypes.postValue(types.associateBy { it.id })
-        }
-    }
-
-    private fun loadShiftDays() {
-        viewModelScope.launch {
-            val range = getMonthRange()
-            shiftDayDao.getByDateRangeLiveData(range.first, range.second)
-                .observeForever { days ->
-                    _shiftDays.postValue(days.associateBy { it.date })
-                }
-        }
-    }
-
-    /**
-     * 重新加载当前视图范围的班次数据
-     */
-    private fun refreshShiftDays() {
-        viewModelScope.launch {
-            val range = getMonthRange()
-            val days = shiftDayDao.getByDateRangeStatic(range.first, range.second)
-            _shiftDays.postValue(days.associateBy { it.date })
         }
     }
 
@@ -95,7 +81,7 @@ class CalendarViewModel : ViewModel() {
     }
 
     fun selectDay(date: Long) {
-        val shiftDay = _shiftDays.value?.get(date)
+        val shiftDay = shiftDays.value?.get(date)
         val shiftType = shiftDay?.let { _shiftTypes.value?.get(it.shiftTypeId) }
         _selectedDay.value = ShiftDayDetail(
             date = date,
@@ -118,7 +104,7 @@ class CalendarViewModel : ViewModel() {
             if (existing != null) {
                 shiftDayDao.updateNote(date, note)
             }
-            refreshShiftDays()
+            // Room LiveData 会自动通知 shiftDays 更新
         }
     }
 
@@ -135,7 +121,7 @@ class CalendarViewModel : ViewModel() {
                     ShiftDay(date = date, shiftTypeId = shiftTypeId, isGenerated = false, note = note)
                 ))
             }
-            refreshShiftDays()
+            // Room LiveData 会自动通知 shiftDays 更新
             scheduleNextSafely()
         }
     }
@@ -152,9 +138,12 @@ class CalendarViewModel : ViewModel() {
         }
     }
 
-    private fun getMonthRange(): Pair<Long, Long> {
-        val cal = Calendar.getInstance().apply {
-            timeInMillis = _currentMonthStart.value ?: getMonthStart()
+    /**
+     * 根据指定的月份起始时间戳计算查询范围（前3月 ~ 后4月）
+     */
+    private fun getMonthRangeFor(monthStart: Long): Pair<Long, Long> {
+        val startCal = Calendar.getInstance().apply {
+            timeInMillis = monthStart
             add(Calendar.MONTH, -3)
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, 0)
@@ -162,16 +151,16 @@ class CalendarViewModel : ViewModel() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        val start = cal.timeInMillis
-
-        cal.apply {
-            timeInMillis = _currentMonthStart.value ?: getMonthStart()
+        val endCal = Calendar.getInstance().apply {
+            timeInMillis = monthStart
             add(Calendar.MONTH, 4)
             set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
-        val end = cal.timeInMillis
-
-        return Pair(start, end)
+        return Pair(startCal.timeInMillis, endCal.timeInMillis)
     }
 
     class Factory : ViewModelProvider.Factory {

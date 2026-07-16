@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
@@ -89,13 +90,14 @@ class CalendarFragment : Fragment() {
         viewModel.isWeekView.observe(viewLifecycleOwner) { isWeek ->
             binding.btnMonthView.isActivated = !isWeek
             binding.btnWeekView.isActivated = isWeek
-            // 更新按钮颜色
+            val colorPrimary = ContextCompat.getColor(requireContext(), R.color.text_primary)
+            val colorSecondary = ContextCompat.getColor(requireContext(), R.color.text_secondary)
             if (isWeek) {
-                binding.btnMonthView.setTextColor(Color.parseColor("#6B7280"))
-                binding.btnWeekView.setTextColor(Color.parseColor("#1A1A2E"))
+                binding.btnMonthView.setTextColor(colorSecondary)
+                binding.btnWeekView.setTextColor(colorPrimary)
             } else {
-                binding.btnMonthView.setTextColor(Color.parseColor("#1A1A2E"))
-                binding.btnWeekView.setTextColor(Color.parseColor("#6B7280"))
+                binding.btnMonthView.setTextColor(colorPrimary)
+                binding.btnWeekView.setTextColor(colorSecondary)
             }
         }
 
@@ -146,6 +148,10 @@ class CalendarFragment : Fragment() {
                 val dayIndex = row * 7 + col - firstDayOfWeek
                 val cellCal = Calendar.getInstance().apply {
                     timeInMillis = monthStart
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
                     add(Calendar.DAY_OF_MONTH, dayIndex)
                 }
                 val date = cellCal.timeInMillis
@@ -176,11 +182,17 @@ class CalendarFragment : Fragment() {
         binding.monthRecyclerView.visibility = View.GONE
         binding.weekRecyclerView.visibility = View.VISIBLE
 
-        val cal = Calendar.getInstance().apply { timeInMillis = monthStart }
-        // 调整到周一
-        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-        val diff = if (dayOfWeek == Calendar.SUNDAY) -6 else 2 - dayOfWeek
-        cal.add(Calendar.DAY_OF_MONTH, diff)
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = monthStart
+            // 调整到本周周一
+            val dayOfWeek = get(Calendar.DAY_OF_WEEK)
+            val diff = if (dayOfWeek == Calendar.SUNDAY) -6 else 2 - dayOfWeek
+            add(Calendar.DAY_OF_MONTH, diff)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
 
         val today = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -217,17 +229,21 @@ class CalendarFragment : Fragment() {
             fullDateFormat.format(Date(detail.date))
 
         val shiftType = detail.shiftType
+        val colorIndicator = view.findViewById<View>(R.id.colorIndicator)
         if (shiftType != null) {
             view.findViewById<TextView>(R.id.tvShiftName).text = shiftType.name
             view.findViewById<TextView>(R.id.tvShiftTime).text =
                 "${shiftType.startTime} — ${shiftType.endTime}"
             try {
-                view.findViewById<View>(R.id.colorIndicator)
-                    .setBackgroundColor(Color.parseColor(shiftType.colorTag))
-            } catch (_: Exception) {}
+                colorIndicator.setBackgroundColor(Color.parseColor(shiftType.colorTag))
+                colorIndicator.visibility = View.VISIBLE
+            } catch (_: Exception) {
+                colorIndicator.visibility = View.GONE
+            }
         } else {
             view.findViewById<TextView>(R.id.tvShiftName).text = getString(R.string.no_shift)
             view.findViewById<TextView>(R.id.tvShiftTime).text = ""
+            colorIndicator.visibility = View.GONE
         }
 
         val etNote = view.findViewById<android.widget.EditText>(R.id.etNote)
@@ -247,29 +263,34 @@ class CalendarFragment : Fragment() {
             }
 
         view.findViewById<TextView>(R.id.tvShiftName).setOnClickListener {
-            showShiftTypePicker(dialog, detail)
+            showShiftTypePicker(dialog, detail, etNote)
         }
 
         dialog.setContentView(view)
         dialog.show()
     }
 
-    private fun showShiftTypePicker(parentDialog: BottomSheetDialog, detail: ShiftDayDetail) {
+    private fun showShiftTypePicker(
+        parentDialog: BottomSheetDialog,
+        detail: ShiftDayDetail,
+        etNote: android.widget.EditText
+    ) {
         val shiftTypes = viewModel.shiftTypes.value ?: emptyMap()
         if (shiftTypes.isEmpty()) {
             android.widget.Toast.makeText(requireContext(), R.string.empty_shift_hint, android.widget.Toast.LENGTH_SHORT).show()
             return
         }
 
-        val typeList = shiftTypes.values.toList()
+        // 按 sortOrder 排序，保证列表顺序一致
+        val typeList = shiftTypes.values.sortedBy { it.sortOrder }
         val items = typeList.map { it.name }.toTypedArray()
         val checkedItem = typeList.indexOfFirst { it.id == detail.shiftType?.id }
 
         androidx.appcompat.app.AlertDialog.Builder(requireContext(), R.style.Theme_ShiftCalendar)
-            .setTitle(R.string.day_detail)
+            .setTitle(R.string.select_shift)
             .setSingleChoiceItems(items, checkedItem) { dlg, which ->
                 val selected = typeList[which]
-                val note = parentDialog.findViewById<android.widget.EditText>(R.id.etNote)?.text?.toString()?.trim() ?: ""
+                val note = etNote.text?.toString()?.trim() ?: ""
                 viewModel.changeShiftType(detail.date, selected.id, note)
                 dlg.dismiss()
                 parentDialog.dismiss()

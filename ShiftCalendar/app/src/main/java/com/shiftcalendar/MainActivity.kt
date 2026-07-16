@@ -1,13 +1,8 @@
 package com.shiftcalendar
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -47,43 +42,14 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation()
         loadInitialFragment()
 
-        // Android 13+ 运行时申请通知权限
-        requestNotificationPermissionIfNeeded()
-
-        // 启动时调度闹钟
+        // 启动时调度闹钟（后台执行，自身已捕获异常）
+        // 通知权限由设置页在用户启用闹钟时按需申请，不在此处打扰用户
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 AlarmScheduler.scheduleNext(this@MainActivity)
             } catch (_: Exception) {
             }
         }
-    }
-
-    /**
-     * Android 13+ 需要运行时申请通知权限，否则闹钟通知无法显示
-     */
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    REQUEST_NOTIFICATION_PERMISSION
-                )
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // 通知权限结果无需特殊处理，用户拒绝也不影响 app 运行
     }
 
     /**
@@ -159,9 +125,5 @@ class MainActivity : AppCompatActivity() {
         }
         transaction.hide(activeFragment).show(fragment).commit()
         activeFragment = fragment
-    }
-
-    companion object {
-        private const val REQUEST_NOTIFICATION_PERMISSION = 100
     }
 }

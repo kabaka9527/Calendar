@@ -5,11 +5,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.shiftcalendar.R
 import com.shiftcalendar.databinding.FragmentCalendarBinding
@@ -25,7 +25,10 @@ class CalendarFragment : Fragment() {
     private val viewModel: CalendarViewModel by viewModels { CalendarViewModel.Factory() }
     private val dateFormat = SimpleDateFormat("yyyy年M月", Locale.getDefault())
     private val fullDateFormat = SimpleDateFormat("yyyy年M月d日 EEEE", Locale.getDefault())
-    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val weekDayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+
+    private lateinit var monthAdapter: MonthCellAdapter
+    private lateinit var weekAdapter: WeekCardAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +44,7 @@ class CalendarFragment : Fragment() {
 
         setupNavigation()
         setupViewToggle()
+        setupRecyclerViews()
         observeViewModel()
     }
 
@@ -59,6 +63,24 @@ class CalendarFragment : Fragment() {
         }
     }
 
+    private fun setupRecyclerViews() {
+        monthAdapter = MonthCellAdapter { date -> viewModel.selectDay(date) }
+        binding.monthRecyclerView.apply {
+            layoutManager = GridLayoutManager(requireContext(), 7)
+            adapter = monthAdapter
+            setHasFixedSize(true)
+            itemAnimator = null
+        }
+
+        weekAdapter = WeekCardAdapter { date -> viewModel.selectDay(date) }
+        binding.weekRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            adapter = weekAdapter
+            setHasFixedSize(true)
+            itemAnimator = null
+        }
+    }
+
     private fun observeViewModel() {
         viewModel.currentMonthStart.observe(viewLifecycleOwner) { monthStart ->
             binding.tvMonthTitle.text = dateFormat.format(Date(monthStart))
@@ -67,9 +89,16 @@ class CalendarFragment : Fragment() {
         viewModel.isWeekView.observe(viewLifecycleOwner) { isWeek ->
             binding.btnMonthView.isActivated = !isWeek
             binding.btnWeekView.isActivated = isWeek
+            // 更新按钮颜色
+            if (isWeek) {
+                binding.btnMonthView.setTextColor(Color.parseColor("#6B7280"))
+                binding.btnWeekView.setTextColor(Color.parseColor("#1A1A2E"))
+            } else {
+                binding.btnMonthView.setTextColor(Color.parseColor("#1A1A2E"))
+                binding.btnWeekView.setTextColor(Color.parseColor("#6B7280"))
+            }
         }
 
-        // 合并观察 shiftDays, shiftTypes, monthStart, isWeekView
         viewModel.shiftDays.observe(viewLifecycleOwner) { _ -> renderIfReady() }
         viewModel.shiftTypes.observe(viewLifecycleOwner) { _ -> renderIfReady() }
         viewModel.currentMonthStart.observe(viewLifecycleOwner) { _ -> renderIfReady() }
@@ -86,20 +115,22 @@ class CalendarFragment : Fragment() {
         val monthStart = viewModel.currentMonthStart.value ?: return
         val isWeekView = viewModel.isWeekView.value ?: return
 
-        val data = CalendarData(shiftDays, shiftTypes, monthStart, isWeekView)
-        if (data.isWeekView) {
-            renderWeekView(data)
+        if (isWeekView) {
+            renderWeekView(shiftDays, shiftTypes, monthStart)
         } else {
-            renderMonthView(data)
+            renderMonthView(shiftDays, shiftTypes, monthStart)
         }
     }
 
-    private fun renderMonthView(data: CalendarData) {
-        binding.weekViewContainer.visibility = View.GONE
-        binding.monthViewContainer.visibility = View.VISIBLE
-        binding.monthViewContainer.removeAllViews()
+    private fun renderMonthView(
+        shiftDays: Map<Long, com.shiftcalendar.data.entity.ShiftDay>,
+        shiftTypes: Map<Long, com.shiftcalendar.data.entity.ShiftType>,
+        monthStart: Long
+    ) {
+        binding.weekRecyclerView.visibility = View.GONE
+        binding.monthRecyclerView.visibility = View.VISIBLE
 
-        val cal = Calendar.getInstance().apply { timeInMillis = data.monthStart }
+        val cal = Calendar.getInstance().apply { timeInMillis = monthStart }
         val firstDayOfWeek = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Monday=0
 
         val today = Calendar.getInstance().apply {
@@ -109,125 +140,43 @@ class CalendarFragment : Fragment() {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
+        val cells = mutableListOf<MonthCellData>()
         for (row in 0 until 6) {
-            val rowLayout = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f
-                )
-            }
-
             for (col in 0 until 7) {
                 val dayIndex = row * 7 + col - firstDayOfWeek
                 val cellCal = Calendar.getInstance().apply {
-                    timeInMillis = data.monthStart
+                    timeInMillis = monthStart
                     add(Calendar.DAY_OF_MONTH, dayIndex)
                 }
                 val date = cellCal.timeInMillis
                 val isCurrentMonth = cellCal.get(Calendar.MONTH) == cal.get(Calendar.MONTH)
+                val shiftDay = shiftDays[date]
+                val shiftType = shiftDay?.let { shiftTypes[it.shiftTypeId] }
 
-                val cellView = createMonthCell(date, isCurrentMonth, date == today, data)
-                rowLayout.addView(cellView)
+                cells.add(
+                    MonthCellData(
+                        date = date,
+                        dayNumber = cellCal.get(Calendar.DAY_OF_MONTH),
+                        isCurrentMonth = isCurrentMonth,
+                        isToday = date == today,
+                        shiftDay = shiftDay,
+                        shiftType = shiftType
+                    )
+                )
             }
-
-            binding.monthViewContainer.addView(rowLayout)
         }
+        monthAdapter.submitList(cells)
     }
 
-    private fun createMonthCell(
-        date: Long,
-        isCurrentMonth: Boolean,
-        isToday: Boolean,
-        data: CalendarData
-    ): View {
-        val cell = FrameLayout(requireContext()).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1f
-            )
-        }
+    private fun renderWeekView(
+        shiftDays: Map<Long, com.shiftcalendar.data.entity.ShiftDay>,
+        shiftTypes: Map<Long, com.shiftcalendar.data.entity.ShiftType>,
+        monthStart: Long
+    ) {
+        binding.monthRecyclerView.visibility = View.GONE
+        binding.weekRecyclerView.visibility = View.VISIBLE
 
-        val content = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
-            setPadding(2, 6, 2, 6)
-        }
-
-        val dayText = TextView(requireContext()).apply {
-            text = SimpleDateFormat("d", Locale.getDefault()).format(Date(date))
-            textSize = 14f
-            gravity = android.view.Gravity.CENTER
-            typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
-            if (!isCurrentMonth) {
-                setTextColor(Color.parseColor("#D1D5DB"))
-            } else if (isToday) {
-                setTextColor(Color.WHITE)
-                background = resources.getDrawable(R.drawable.today_circle, null)
-            } else {
-                setTextColor(Color.parseColor("#1A1A2E"))
-            }
-        }
-        content.addView(dayText)
-
-        val shiftDay = data.shiftDays[date]
-        val shiftType = shiftDay?.let { data.shiftTypes[it.shiftTypeId] }
-
-        if (shiftType != null && isCurrentMonth) {
-            val pillColor = try {
-                Color.parseColor(shiftType.colorTag)
-            } catch (e: Exception) {
-                Color.parseColor("#4A6FA5")
-            }
-
-            val pill = TextView(requireContext()).apply {
-                text = shiftType.name
-                textSize = 9f
-                setTextColor(Color.WHITE)
-                gravity = android.view.Gravity.CENTER
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setPadding(4, 2, 4, 2)
-                val bg = resources.getDrawable(R.drawable.shift_pill_bg, null).mutate()
-                bg.setColorFilter(pillColor, android.graphics.PorterDuff.Mode.SRC_IN)
-                background = bg
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    topMargin = 6
-                }
-            }
-            content.addView(pill)
-        }
-
-        // 有备注时显示小标记
-        if (shiftDay != null && shiftDay.note.isNotEmpty() && isCurrentMonth) {
-            val noteDot = View(requireContext()).apply {
-                setBackgroundColor(Color.parseColor("#9CA3AF"))
-                layoutParams = LinearLayout.LayoutParams(4, 4).apply {
-                    topMargin = 4
-                }
-            }
-            content.addView(noteDot)
-        }
-
-        cell.addView(content)
-        cell.setOnClickListener {
-            if (isCurrentMonth) viewModel.selectDay(date)
-        }
-
-        return cell
-    }
-
-    private fun renderWeekView(data: CalendarData) {
-        binding.monthViewContainer.visibility = View.GONE
-        binding.weekViewContainer.visibility = View.VISIBLE
-        binding.weekViewContainer.removeAllViews()
-
-        val cal = Calendar.getInstance().apply { timeInMillis = data.monthStart }
+        val cal = Calendar.getInstance().apply { timeInMillis = monthStart }
         // 调整到周一
         val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
         val diff = if (dayOfWeek == Calendar.SUNDAY) -6 else 2 - dayOfWeek
@@ -240,81 +189,24 @@ class CalendarFragment : Fragment() {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
+        val cards = mutableListOf<WeekCardData>()
         for (i in 0 until 7) {
             val date = cal.timeInMillis
-            val shiftDay = data.shiftDays[date]
-            val shiftType = shiftDay?.let { data.shiftTypes[it.shiftTypeId] }
+            val shiftDay = shiftDays[date]
+            val shiftType = shiftDay?.let { shiftTypes[it.shiftTypeId] }
 
-            val itemView = createWeekDayItem(date, date == today, shiftType)
-            binding.weekViewContainer.addView(itemView)
-
+            cards.add(
+                WeekCardData(
+                    date = date,
+                    weekDayName = weekDayFormat.format(Date(date)),
+                    dayNumber = cal.get(Calendar.DAY_OF_MONTH),
+                    isToday = date == today,
+                    shiftType = shiftType
+                )
+            )
             cal.add(Calendar.DAY_OF_MONTH, 1)
         }
-    }
-
-    private fun createWeekDayItem(
-        date: Long,
-        isToday: Boolean,
-        shiftType: com.shiftcalendar.data.entity.ShiftType?
-    ): View {
-        val item = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(16, 12, 16, 12)
-            gravity = android.view.Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
-        }
-
-        val dayName = TextView(requireContext()).apply {
-            text = SimpleDateFormat("EEE", Locale.getDefault()).format(Date(date))
-            textSize = 11f
-            setTextColor(Color.parseColor("#9CA3AF"))
-            gravity = android.view.Gravity.CENTER
-        }
-        item.addView(dayName)
-
-        val dayNum = TextView(requireContext()).apply {
-            text = SimpleDateFormat("d", Locale.getDefault()).format(Date(date))
-            textSize = 16f
-            if (isToday) {
-                setTextColor(Color.WHITE)
-                background = resources.getDrawable(R.drawable.today_circle_small, null)
-            } else {
-                setTextColor(Color.parseColor("#1A1A2E"))
-            }
-            gravity = android.view.Gravity.CENTER
-            setPadding(8, 4, 8, 4)
-        }
-        item.addView(dayNum)
-
-        if (shiftType != null) {
-            val shiftText = TextView(requireContext()).apply {
-                text = shiftType.name
-                textSize = 12f
-                try {
-                    setTextColor(Color.parseColor(shiftType.colorTag))
-                } catch (e: Exception) {
-                    setTextColor(Color.parseColor("#4A6FA5"))
-                }
-                gravity = android.view.Gravity.CENTER
-                setPadding(0, 4, 0, 0)
-            }
-            item.addView(shiftText)
-
-            val timeText = TextView(requireContext()).apply {
-                text = "${shiftType.startTime}-${shiftType.endTime}"
-                textSize = 10f
-                setTextColor(Color.parseColor("#6B7280"))
-                gravity = android.view.Gravity.CENTER
-            }
-            item.addView(timeText)
-        }
-
-        item.setOnClickListener { viewModel.selectDay(date) }
-        return item
+        weekAdapter.submitList(cards)
     }
 
     private fun showDayDetail(detail: ShiftDayDetail) {
@@ -341,7 +233,6 @@ class CalendarFragment : Fragment() {
         val etNote = view.findViewById<android.widget.EditText>(R.id.etNote)
         etNote.setText(detail.note)
 
-        // 保存备注
         view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveNote)
             .setOnClickListener {
                 val note = etNote.text.toString().trim()
@@ -355,7 +246,6 @@ class CalendarFragment : Fragment() {
                 dialog.dismiss()
             }
 
-        // 班次名点击可切换班次
         view.findViewById<TextView>(R.id.tvShiftName).setOnClickListener {
             showShiftTypePicker(dialog, detail)
         }

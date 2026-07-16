@@ -90,7 +90,9 @@ object AlarmScheduler {
     }
 
     private fun cancel(context: Context, alarmManager: AlarmManager) {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_TRIGGER
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context, ALARM_REQUEST_CODE, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE

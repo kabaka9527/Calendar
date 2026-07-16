@@ -1,8 +1,13 @@
 package com.shiftcalendar
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -28,6 +33,9 @@ class MainActivity : AppCompatActivity() {
     private var activeFragment: Fragment = calendarFragment
     private var prefersReducedMotion: Boolean = false
 
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -42,11 +50,28 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation()
         loadInitialFragment()
 
+        // Android 13+ 运行时申请通知权限
+        requestNotificationPermissionIfNeeded()
+
         // 启动时调度闹钟
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 AlarmScheduler.scheduleNext(this@MainActivity)
             } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * Android 13+ 需要运行时申请通知权限，否则闹钟通知无法显示
+     */
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }

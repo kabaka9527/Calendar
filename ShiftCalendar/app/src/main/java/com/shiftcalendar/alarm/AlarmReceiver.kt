@@ -10,8 +10,12 @@ import kotlinx.coroutines.launch
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_TRIGGER) return
+
+        // 使用 goAsync() 防止系统在协程完成前杀死进程
+        val pendingResult = goAsync()
         val shiftTypeId = intent.getLongExtra(EXTRA_SHIFT_TYPE_ID, 0)
         val db = com.shiftcalendar.ShiftCalendarApp.instance.database
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val type = db.shiftTypeDao().getById(shiftTypeId)
@@ -22,6 +26,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 }
                 scheduleNextSafely(context)
             } catch (_: Exception) {
+            } finally {
+                pendingResult.finish()
             }
         }
     }
